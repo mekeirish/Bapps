@@ -104,6 +104,23 @@
     .btn-link { background: none; border: none; color: var(--text-muted); font-size: 0.6875rem; text-decoration: underline; cursor: pointer; }
     .btn-link:hover { color: #fff; }
 
+    .search-bar-container {
+      padding: 10px 20px 0 20px;
+      flex-shrink: 0;
+    }
+    .search-input {
+      width: 100%;
+      padding: 8px 12px;
+      background-color: rgba(3, 7, 18, 0.8);
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.75rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: #38bdf8; }
+
     .grid-container {
       flex: 1; padding: 20px; overflow-y: auto; overflow-x: hidden;
       -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-height: 0;
@@ -276,6 +293,10 @@
           <button class="btn-link" onclick="logout()">Déconnexion</button>
           <div style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--emerald);"></div>
         </div>
+      </div>
+
+      <div class="search-bar-container">
+        <input type="text" id="repoSearchInput" class="search-input" placeholder="🔍 Rechercher un repo (filtre intelligent)..." oninput="filterRepos()" />
       </div>
 
       <div class="grid-container">
@@ -654,6 +675,26 @@
       }
     }
 
+    function filterRepos() {
+      if (!cachedData || !cachedData.pwas) return;
+      const input = document.getElementById('repoSearchInput');
+      const query = input ? input.value.trim().toLowerCase() : "";
+
+      const filtered = cachedData.pwas.filter(function(pwa) {
+        if (!query) return true;
+        const name = pwa.name.toLowerCase();
+        let qIdx = 0;
+        for (let i = 0; i < name.length && qIdx < query.length; i++) {
+          if (name[i] === query[qIdx]) {
+            qIdx++;
+          }
+        }
+        return qIdx === query.length;
+      });
+
+      renderGridItems(filtered);
+    }
+
     function renderUI(pwas, others) {
       const loadingState = document.getElementById('loadingState');
       const repoCountBadge = document.getElementById('repoCountBadge');
@@ -662,12 +703,17 @@
       if (repoCountBadge) repoCountBadge.textContent = pwas.length + ' PWA';
       if (otherCountEl) otherCountEl.textContent = others.length;
 
+      filterRepos();
+      buildOthersModalContent(others);
+    }
+
+    function renderGridItems(pwas) {
       const grid = document.getElementById('appGrid');
       if (!grid) return;
       grid.innerHTML = "";
 
       if (pwas.length === 0) {
-        grid.innerHTML = '<div style="grid-column: span 4; text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 32px;">Aucune PWA avec icon.png trouvée.</div>';
+        grid.innerHTML = '<div style="grid-column: span 4; text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 32px;">Aucune PWA trouvée.</div>';
         return;
       }
 
@@ -697,7 +743,6 @@
       });
 
       requestAnimationFrame(function() { grid.appendChild(fragment); });
-      buildOthersModalContent(others);
     }
 
     async function openFilesModal(repo) {
